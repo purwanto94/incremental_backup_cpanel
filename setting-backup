@@ -1,0 +1,21 @@
+#!/bin/bash
+# A script to perform incremental backups using rsync
+# https://linuxconfig.org/how-to-create-incremental-backups-using-rsync-on-linux#h2-hard-vs-symbolic-links
+
+# Directory backup location
+readonly BACKUP_DIR="/backup/cpanel/"
+
+# IP server backup
+readonly IP_SERVER="192.168.xx.xx"
+
+# Daily backup retain
+readonly DAILY="7"
+
+# Monthly backup retain
+readonly MONTHLY="2"
+
+# port SSH
+readonly PORT="22"
+
+# Bandwith limit (KBPS)
+readonly BANDWITH="50000"
