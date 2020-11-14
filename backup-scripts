@@ -3,7 +3,7 @@ set -e
 set -o pipefail
 
 # include file setting
-source /bashscripts/setting-backup.sh
+source setting-backup
 
 # Date
 readonly TANGGAL="$(date '+%d')"
@@ -16,7 +16,7 @@ else
         PERIODE="daily"
 fi
 
-readonly CPANEL_DATA="/home/backup-tmp/cpmove-${1}"
+readonly CPANEL_DATA="/home/cpmove-${1}"
 readonly SOURCE_DIR="/home/${1}"
 readonly DATETIME="$(date '+%Y-%m-%d')"
 readonly REMOTE_SERVER="root@${IP_SERVER}"
@@ -24,10 +24,10 @@ readonly BACKUP_PATH="${BACKUP_DIR}/${1}/${PERIODE}-${DATETIME}"
 readonly LATEST_LINK="${BACKUP_DIR}/${1}/latest"
 readonly SSH="ssh ${REMOTE_SERVER} -p ${PORT}"
 readonly DAYMONTHLY="$((MONTHLY*30))"
-readonly EXCLUDE="/bashscripts/exclude.txt"
+readonly EXCLUDE="exclude.txt"
 
 # pkgacct incremental
-/usr/local/cpanel/scripts/pkgacct --incremental --skiphomedir ${1} /home/backup-tmp/
+/usr/local/cpanel/scripts/pkgacct --incremental --skiphomedir ${1} /home/
 
 # mkdir folder backup
 ${SSH} "mkdir -p "${BACKUP_PATH}""
