@@ -1,0 +1,56 @@
+#!/bin/bash
+set -e
+set -o pipefail
+
+# include file setting
+source /bashscripts/setting-backup.sh
+
+# Date
+readonly TANGGAL="$(date '+%d')"
+
+# daily or monthly
+if [ $TANGGAL == 01 ]
+then
+        PERIODE="monthly"
+else
+        PERIODE="daily"
+fi
+
+readonly CPANEL_DATA="/home/backup-tmp/cpmove-${1}"
+readonly SOURCE_DIR="/home/${1}"
+readonly DATETIME="$(date '+%Y-%m-%d')"
+readonly REMOTE_SERVER="root@${IP_SERVER}"
+readonly BACKUP_PATH="${BACKUP_DIR}/${1}/${PERIODE}-${DATETIME}"
+readonly LATEST_LINK="${BACKUP_DIR}/${1}/latest"
+readonly SSH="ssh ${REMOTE_SERVER} -p ${PORT}"
+readonly DAYMONTHLY="$((MONTHLY*30))"
+readonly EXCLUDE="/bashscripts/exclude.txt"
+
+# pkgacct incremental
+/usr/local/cpanel/scripts/pkgacct --incremental --skiphomedir ${1} /home/backup-tmp/
+
+# mkdir folder backup
+${SSH} "mkdir -p "${BACKUP_PATH}""
+
+# rsync cpanel data
+rsync -av --delete --exclude '/homedir' --bwlimit="$BANDWITH" \
+  "${CPANEL_DATA}/" \
+  --link-dest "${LATEST_LINK}/" \
+  -e "ssh -p ${PORT}" \
+  "$REMOTE_SERVER:${BACKUP_PATH}/"
+
+# rsync homedir
+rsync -av --delete --exclude-from="${EXCLUDE}" --bwlimit="$BANDWITH" \
+  "${SOURCE_DIR}/" \
+  --link-dest "${LATEST_LINK}/homedir/" \
+  -e "ssh -p ${PORT}" \
+  "$REMOTE_SERVER:${BACKUP_PATH}/homedir/"
+
+# remove latest link dan remove data backup lama
+${SSH} "rm -rf "${LATEST_LINK}" \
+&& ln -s "${BACKUP_PATH}" "${LATEST_LINK}" \
+&& find ${BACKUP_DIR}/${1}/* -maxdepth 0 -name "daily-*" -type d -mtime +${DAILY} -exec rm -rf {} \; \
+&& find ${BACKUP_DIR}/${1}/* -maxdepth 0 -name "monthly-*" -type d -mtime +${DAYMONTHLY} -exec rm -rf {} \;"
+
+# remove backup tmp
+rm -rf "${CPANEL_DATA}"
