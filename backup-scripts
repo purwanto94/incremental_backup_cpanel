@@ -1,14 +1,12 @@
 #!/bin/bash
-set -e
-set -o pipefail
 
 # include file setting
-source setting-backup
+source /bashscripts/setting-backup.sh
 
-# Date
+# Jumlah data backup monthly
 readonly TANGGAL="$(date '+%d')"
 
-# daily or monthly
+# daily atau monthly
 if [ $TANGGAL == 01 ]
 then
         PERIODE="monthly"
@@ -16,7 +14,7 @@ else
         PERIODE="daily"
 fi
 
-readonly CPANEL_DATA="/home/cpmove-${1}"
+readonly CPANEL_DATA="/home/backup-tmp/cpmove-${1}"
 readonly SOURCE_DIR="/home/${1}"
 readonly DATETIME="$(date '+%Y-%m-%d')"
 readonly REMOTE_SERVER="root@${IP_SERVER}"
@@ -24,10 +22,24 @@ readonly BACKUP_PATH="${BACKUP_DIR}/${1}/${PERIODE}-${DATETIME}"
 readonly LATEST_LINK="${BACKUP_DIR}/${1}/latest"
 readonly SSH="ssh ${REMOTE_SERVER} -p ${PORT}"
 readonly DAYMONTHLY="$((MONTHLY*30))"
-readonly EXCLUDE="exclude.txt"
+readonly EXCLUDE="/bashscripts/exclude.txt"
+
+# Send laporan mingguan
+if [[ $(date +%u) -gt 6 ]]; then
+    ${SSH} "ls -ld ${BACKUP_DIR}/${1}/*" > /bashscripts/report.txt && cat /bashscripts/report.txt | mail -s "Laporan Mingguan Backup ${1}" -r "${1}@${HOSTNAME}" jetbackup@indowebsite.net
+    exit
+fi
+
+# trap error
+abort()
+{
+echo "Backup akun $1 tanggal $2 gagal" | mail -s "GAGAL - Backup $1 $2" -r "$1@${HOSTNAME}" jetbackup@indowebsite.net
+}
+trap 'abort ${1} ${DATETIME}' 0
+set -e
 
 # pkgacct incremental
-/usr/local/cpanel/scripts/pkgacct --incremental --skiphomedir ${1} /home/
+/usr/local/cpanel/scripts/pkgacct --incremental --skiphomedir ${1} /home/backup-tmp/
 
 # mkdir folder backup
 ${SSH} "mkdir -p "${BACKUP_PATH}""
@@ -38,14 +50,6 @@ rsync -av --delete --exclude '/homedir' --bwlimit="$BANDWITH" \
   --link-dest "${LATEST_LINK}/" \
   -e "ssh -p ${PORT}" \
   "$REMOTE_SERVER:${BACKUP_PATH}/"
-  
-# send email
-if [ "$?" -eq "0" ]
-then
-echo "Backup akun ${1} tanggal ${DATETIME} sukses" | mail -s "SUKSES - Backup ${1} ${DATETIME}" -r "${1}@${HOSTNAME}" email@domain.com
-else
-echo "Backup akun ${1} tanggal ${DATETIME} gagal" | mail -s "GAGAL - Backup ${1} ${DATETIME}" -r "${1}@${HOSTNAME}" email@domain.com
-fi
 
 # rsync homedir
 rsync -av --delete --exclude-from="${EXCLUDE}" --bwlimit="$BANDWITH" \
@@ -62,3 +66,8 @@ ${SSH} "rm -rf "${LATEST_LINK}" \
 
 # remove backup tmp
 rm -rf "${CPANEL_DATA}"
+
+# Send Email Sukses
+echo "Backup akun ${1} tanggal ${DATETIME} sukses" | mail -s "SUKSES - Backup ${1} ${DATETIME}" -r "${1}@${HOSTNAME}" jetbackup@indowebsite.net
+
+trap : 0
