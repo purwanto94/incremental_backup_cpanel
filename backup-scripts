@@ -38,6 +38,14 @@ rsync -av --delete --exclude '/homedir' --bwlimit="$BANDWITH" \
   --link-dest "${LATEST_LINK}/" \
   -e "ssh -p ${PORT}" \
   "$REMOTE_SERVER:${BACKUP_PATH}/"
+  
+# send email
+if [ "$?" -eq "0" ]
+then
+echo "Backup akun ${1} tanggal ${DATETIME} sukses" | mail -s "SUKSES - Backup ${1} ${DATETIME}" -r "${1}@${HOSTNAME}" email@domain.com
+else
+echo "Backup akun ${1} tanggal ${DATETIME} gagal" | mail -s "GAGAL - Backup ${1} ${DATETIME}" -r "${1}@${HOSTNAME}" email@domain.com
+fi
 
 # rsync homedir
 rsync -av --delete --exclude-from="${EXCLUDE}" --bwlimit="$BANDWITH" \
