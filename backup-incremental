@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # include file setting
-source setting-backup.sh
+source /bashscripts/setting-backup.sh
 
 # Jumlah data backup monthly
 readonly TANGGAL="$(date '+%d')"
@@ -22,11 +22,11 @@ readonly BACKUP_PATH="${BACKUP_DIR}/${1}/${PERIODE}-${DATETIME}"
 readonly LATEST_LINK="${BACKUP_DIR}/${1}/latest"
 readonly SSH="ssh ${REMOTE_SERVER} -p ${PORT}"
 readonly DAYMONTHLY="$((MONTHLY*30))"
-readonly EXCLUDE="exclude.txt"
+readonly EXCLUDE="/bashscripts/exclude.txt"
 
 # Send laporan mingguan
 if [[ $(date +%u) -gt 6 ]]; then
-    ${SSH} "ls -ld ${BACKUP_DIR}/${1}/*" > report.txt && cat report.txt | mail -s "Laporan Mingguan Backup ${1}" -r "${1}@${HOSTNAME}" jetbackup@indowebsite.net
+    ${SSH} "ls -ld ${BACKUP_DIR}/${1}/*" > /bashscripts/report.txt && cat /bashscripts/report.txt | mail -s "Laporan Mingguan Backup ${1}" -r "${1}@${HOSTNAME}" jetbackup@indowebsite.net
     exit
 fi
 
